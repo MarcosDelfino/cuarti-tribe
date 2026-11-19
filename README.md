@@ -1,47 +1,52 @@
 # CuartiChord
 
-**CuartiChord** turns a Korg Electribe 2 (Synth or Sampler) into a standalone MIDI **Omnichord-style chord & strumplate controller**.
+**CuartiChord** turns a Korg Electribe 2 (Synth or Sampler) into a standalone **MIDI Omnichord-style chord & strumplate controller**.
 
+Built by **Cuarti** as part of **CUARTI CORP**.  
 CuartiChord is a fork of [bangcorrupt's Hacktribe](https://github.com/bangcorrupt/hacktribe) and runs on top of [Freetribe](https://github.com/bangcorrupt/freetribe), booting custom bare-metal ARM9 firmware directly into the Electribe 2's RAM over MIDI SysEx.
 
-> **Credit & Origins:** All low-level reverse engineering, Hacktribe firmware patches, and the Freetribe ARM9/Blackfin runtime were created by [bangcorrupt](https://github.com/bangcorrupt). CuartiChord builds on that foundation with a custom Freetribe app (`freetribe/cpu/src/apps/omnichord/omnichord.c`) and a macOS/Python MIDI launcher (`scripts/cuartichord_launcher.py`).
+> **Important — MIDI Only (Bring Your Own Polyphonic Synth):**  
+> CuartiChord is a **pure MIDI controller** and does not produce internal audio on the Electribe. You will need a **synth or DAW** connected via MIDI Out to hear it. Because chords play up to 4 simultaneous notes and the ribbon strums multiple overlapping voices, use a **polyphonic synth — the more voices, the better**.
+
+> **100% Safe — Cannot Brick Your Electribe:**  
+> CuartiChord runs **strictly in RAM (`OC_RAM`)** and never writes to your Electribe's internal flash memory. Power-cycling the unit (or pressing `Shift + Exit`) cleanly exits back to Hacktribe 2 with zero risk of bricking.
+
+> **Credit & Origins:** All low-level reverse engineering, Hacktribe firmware patches, and the Freetribe ARM9/Blackfin runtime were created by [bangcorrupt](https://github.com/bangcorrupt). CuartiChord builds on that foundation with a custom Freetribe app (`freetribe/cpu/src/apps/omnichord/omnichord.c`) and the `cuartichord` MIDI launcher (`scripts/cuartichord_launcher.py`).
 
 ---
 
 ## How to Install
 
-### Prerequisites
-- **Hardware:** Korg Electribe 2 (Blue Synth or Red/Black Sampler) + a MIDI interface (DIN MIDI IN/OUT connected to your computer).
-- **Toolchain (to build from source):** `arm-none-eabi-gcc` and `make`.
-- **Python 3** with `mido`, `python-rtmidi`, and `bsdiff4`:
-  ```bash
-  pip install mido python-rtmidi bsdiff4
-  ```
+### Quick Install (Recommended)
+Run the included installer script from the repo root. It automatically sets up a Python virtual environment (`.venv`), installs `mido`, `python-rtmidi`, and `bsdiff4`, installs `arm-none-eabi-gcc` via Homebrew on macOS if missing, compiles CuartiChord, and installs the `cuartichord` CLI command:
 
-### 1. Install Hacktribe 2 on the Electribe 2
-CuartiChord uses the Freetribe RAM bootloader (`0x58` / `0x57` SysEx), which is included in **Hacktribe 2**:
-1. Place your stock Electribe 2 `SYSTEM.VSB` (v2.02) in the repo root.
-2. Apply the Hacktribe 2 patch (`patch/hacktribe-2.patch`) using `scripts/e2-firmware-patch.py` (see `scripts/hacktribe-tutorial.sh` for the exact workflow) to generate the patched `SYSTEM.VSB`.
-3. Copy the patched `SYSTEM.VSB` to your Electribe's SD card under `KORG/electribe2/System/` and run **System Update** on the Electribe.
-
-### 2. Build CuartiChord
 ```bash
-cd freetribe/cpu
-make APP=omnichord
-cp build/cpu.bin build/omnichord.bin
+./install.sh
 ```
 
-### 3. Boot CuartiChord via MIDI
-With the Electribe powered on (running Hacktribe 2) and MIDI IN + OUT connected:
+Once installed, make sure your Electribe 2 (running **Hacktribe 2**) is connected via **MIDI IN + OUT** and simply run:
+
 ```bash
+cuartichord
+```
+
+The `cuartichord` command automatically checks your MIDI ports, verifies SysEx communication with the Electribe, and uploads CuartiChord into RAM.
+
+### Prerequisite: Hacktribe 2 on the Electribe 2
+CuartiChord boots via the Freetribe RAM bootloader (`0x58` / `0x57` SysEx), which is included in **Hacktribe 2** (only needs to be flashed once):
+1. Place your stock Electribe 2 `SYSTEM.VSB` (v2.02) in the repo root.
+2. Apply `patch/hacktribe-2.patch` using `scripts/e2-firmware-patch.py` (see `scripts/hacktribe-tutorial.sh`).
+3. Copy the patched `SYSTEM.VSB` to your SD card under `KORG/electribe2/System/` and run **System Update** on the Electribe.
+
+### Manual Build & Launch (Without `install.sh`)
+If you prefer to build and run manually:
+```bash
+pip install mido python-rtmidi bsdiff4
+cd freetribe/cpu && make APP=omnichord && cp build/cpu.bin build/omnichord.bin
+cd ../..
 python scripts/cuartichord_launcher.py
 ```
-*(Or using the raw Freetribe loader directly:)*
-```bash
-python scripts/execute_freetribe.py freetribe/cpu/build/omnichord.bin
-```
-
-> **Note:** CuartiChord runs entirely in RAM (`OC_RAM`). Power-cycling the Electribe (or pressing `Shift + Exit`) cleanly returns it to Hacktribe 2.
+*(Or using the raw Freetribe loader: `python scripts/execute_freetribe.py freetribe/cpu/build/omnichord.bin`)*
 
 ---
 
